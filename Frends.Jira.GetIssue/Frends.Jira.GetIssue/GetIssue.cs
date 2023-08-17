@@ -25,7 +25,8 @@ public class Jira
     {
         try
         {
-            var client = new RestClient(connection.JiraBaseUrl);
+            using var client = new RestClient(connection.JiraBaseUrl);
+            client.AddDefaultHeader("Authorization", $"Bearer {connection.Token}");
             RestRequest request = new();
 
             switch (input.SearchType)
@@ -37,8 +38,6 @@ public class Jira
                     request = new RestRequest($"rest/api/latest/search?jql={input.Jql}", Method.Get);
                     break;
             }
-
-            request.AddHeader("Authorization", $"Bearer {connection.Token}");
 
             var response = await client.ExecuteAsync(request, cancellationToken);
             var data = JToken.Parse(response.Content);
