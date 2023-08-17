@@ -16,7 +16,7 @@ public class Result
     /// <summary>
     /// Request content as JToken.
     /// </summary>
-    /// <example>{\"id\":\"151878\",\"key\":\"TT-1\",\"self\":\"https://url.jira.fi/jira/rest/api/latest/issue/151878\"}"</example>
+    /// <example>{{ "id": "151959", "key": "TT-87", "self": "https://test.jira.fi/jira/rest/api/latest/issue/151959" }}</example>
     public JToken Data { get; private set; }
 
     /// <summary>
