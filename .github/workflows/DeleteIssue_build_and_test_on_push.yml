@@ -1,0 +1,22 @@
+name: DeleteIssue build test
+
+on:
+  push:
+    branches-ignore: 
+      - main
+    paths:
+      - 'Frends.Jira.DeleteIssue/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_test.yml@main
+    with:
+      workdir: Frends.Jira.DeleteIssue
+      env_var_name_1: TestJiraUrl
+      env_var_name_2: TestJiraPat
+    secrets:
+      badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
+      test_feed_api_key: ${{ secrets.TASKS_TEST_FEED_API_KEY }}
+      env_var_value_1: ${{ secrets.TESTJIRAURL }}
+      env_var_value_2: ${{ secrets.TESTJIRAPAT }}
