@@ -12,22 +12,15 @@ public class Input
     /// Search type.
     /// </summary>
     /// <example>SearchType.IssueKey</example>
-    [DefaultValue(SearchType.IssueKey)]
+    [DefaultValue(SearchType.IdOrKey)]
     public SearchType SearchType { get; set; }
 
     /// <summary>
-    /// Specify the issue key you want to retrieve.
+    /// Specify the issue ID or key to retrieve.
     /// </summary>
-    /// <example>TT-1</example>
-    [UIHint(nameof(SearchType), "", SearchType.IssueKey)]
-    public string IssueKey { get; set; }
-
-    /// <summary>
-    /// Specify the issue ID you want to retrieve.
-    /// </summary>
-    /// <example>123</example>
-    [UIHint(nameof(SearchType), "", SearchType.IssueId)]
-    public string IssueId { get; set; }
+    /// <example>TT-1, 123</example>
+    [UIHint(nameof(SearchType), "", SearchType.IdOrKey)]
+    public string IdOrKey { get; set; }
 
     /// <summary>
     /// Use JQL to search for issues.

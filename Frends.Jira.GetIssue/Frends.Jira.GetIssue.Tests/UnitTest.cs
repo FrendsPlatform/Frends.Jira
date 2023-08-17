@@ -24,43 +24,41 @@ public class UnitTest
 
         _input = new()
         {
-            SearchType = SearchType.IssueKey,
-            IssueId = "",
-            IssueKey = "",
-            Jql = "",
+            SearchType = SearchType.IdOrKey,
+            IdOrKey = "",
+            Jql = ""
         };
     }
 
     [TestMethod]
     public async Task GetIssue_Key_Success()
     {
-        _input.IssueKey = await CreateIssue(true);
+        _input.IdOrKey = await CreateIssue(true);
         var result = await Jira.GetIssue(_connection, _input, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
 
-        await DeleteIssue(null, _input.IssueKey);
+        await DeleteIssue(null, _input.IdOrKey);
     }
 
     [TestMethod]
     public async Task GetIssue_Id_Success()
     {
-        _input.SearchType = SearchType.IssueId;
-        _input.IssueId = await CreateIssue(false);
+        _input.IdOrKey = await CreateIssue(false);
         var result = await Jira.GetIssue(_connection, _input, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
 
-        await DeleteIssue(_input.IssueId, null);
+        await DeleteIssue(_input.IdOrKey, null);
     }
 
     [TestMethod]
     public async Task GetIssue_All_Success()
     {
         _input.SearchType = SearchType.Jql;
-        _input.IssueId = await CreateIssue(false);
+        _input.IdOrKey = await CreateIssue(false);
         _input.Jql = "project=TT";
 
         var result = await Jira.GetIssue(_connection, _input, default);
@@ -68,13 +66,13 @@ public class UnitTest
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
 
-        await DeleteIssue(_input.IssueId, null);
+        await DeleteIssue(_input.IdOrKey, null);
     }
 
     [TestMethod]
     public async Task GetIssue_NotFound()
     {
-        _input.IssueKey = "Foo";
+        _input.IdOrKey = "Foo";
 
         var result = await Jira.GetIssue(_connection, _input, default);
         Assert.IsFalse(result.Success);

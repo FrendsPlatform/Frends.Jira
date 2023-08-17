@@ -13,5 +13,9 @@ jobs:
     uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_main.yml@main
     with:
       workdir: Frends.Jira.DeleteIssue
+      env_var_name_1: TestJiraUrl
+      env_var_name_2: TestJiraPat
     secrets:
       badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
+      env_var_value_1: ${{ secrets.TESTJIRAURL }}
+      env_var_value_2: ${{ secrets.TESTJIRAPAT }}

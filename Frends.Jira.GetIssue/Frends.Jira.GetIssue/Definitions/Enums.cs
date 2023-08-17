@@ -6,17 +6,12 @@
 public enum SearchType
 {
     /// <summary>
-    /// Specify the issue key you want to retrieve.
+    /// Issue Id or key.
     /// </summary>
-    IssueKey,
+    IdOrKey,
 
     /// <summary>
-    /// Specify the issue ID you want to retrieve.
-    /// </summary>
-    IssueId,
-
-    /// <summary>
-    /// Use JQL to search for issues.
+    /// JQL.
     /// </summary>
     Jql
 }

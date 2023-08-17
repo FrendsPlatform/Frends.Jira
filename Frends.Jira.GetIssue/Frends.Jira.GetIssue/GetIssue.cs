@@ -27,13 +27,11 @@ public class Jira
         {
             var client = new RestClient(connection.JiraBaseUrl);
             RestRequest request = new();
+
             switch (input.SearchType)
             {
-                case SearchType.IssueKey:
-                    request = new RestRequest($"rest/api/latest/issue/{input.IssueKey}", Method.Get);
-                    break;
-                case SearchType.IssueId:
-                    request = new RestRequest($"rest/api/latest/issue/{input.IssueId}", Method.Get);
+                case SearchType.IdOrKey:
+                    request = new RestRequest($"rest/api/latest/issue/{input.IdOrKey}", Method.Get);
                     break;
                 case SearchType.Jql:
                     request = new RestRequest($"rest/api/latest/search?jql={input.Jql}", Method.Get);
