@@ -6,6 +6,7 @@ Frends Task for Jira operations.
 
 - [Frends.Jira.GetIssue](Frends.Jira.GetIssue/README.md)
 - [Frends.Jira.CreateIssue](Frends.Jira.CreateIssue/README.md)
+- [Frends.Jira.UpdateIssue](Frends.Jira.UpdateIssue/README.md)
 - [Frends.Jira.DeleteIssue](Frends.Jira.DeleteIssue/README.md)
 
 # Contributing
