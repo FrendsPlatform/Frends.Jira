@@ -39,7 +39,7 @@ public class UnitTest
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
 
-        await DeleteIssue(null, _input.IdOrKey);
+        await DeleteIssue(_input.IdOrKey);
     }
 
     [TestMethod]
@@ -51,7 +51,7 @@ public class UnitTest
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
 
-        await DeleteIssue(_input.IdOrKey, null);
+        await DeleteIssue(_input.IdOrKey);
     }
 
     [TestMethod]
@@ -66,7 +66,7 @@ public class UnitTest
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
 
-        await DeleteIssue(_input.IdOrKey, null);
+        await DeleteIssue(_input.IdOrKey);
     }
 
     [TestMethod]
@@ -95,8 +95,8 @@ public class UnitTest
         try
         {
             using var client = new RestClient(_connection.JiraBaseUrl);
+            client.AddDefaultHeader("Authorization", $"Bearer {_connection.Token}");
             var request = new RestRequest("rest/api/latest/issue", Method.Post);
-            request.AddHeader("Authorization", $"Bearer {_connection.Token}");
 
             var fields = new
             {
@@ -118,19 +118,14 @@ public class UnitTest
         }
     }
 
-    private async Task DeleteIssue(string? id, string? key)
+    private async Task DeleteIssue(string value)
     {
         try
         {
             using var client = new RestClient(_connection.JiraBaseUrl);
-            RestRequest request = new();
-
-            if (!string.IsNullOrWhiteSpace(id))
-                request = new RestRequest($"rest/api/latest/issue/{id}", Method.Delete);
-            else if (!string.IsNullOrWhiteSpace(key))
-                request = new RestRequest($"rest/api/latest/issue/{key}", Method.Delete);
-
-            var deleteResponse = await client.ExecuteAsync(request);
+            client.AddDefaultHeader("Authorization", $"Bearer {_connection.Token}");
+            var request = new RestRequest($"rest/api/latest/issue/{value}", Method.Delete);
+            await client.ExecuteAsync(request);
         }
         catch (Exception ex)
         {
