@@ -41,7 +41,7 @@ public class UnitTest
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
-        await DeleteIssue(null, result.Data["key"].ToString());
+        await DeleteIssue(result.Data["key"].ToString());
     }
 
     [TestMethod]
@@ -67,19 +67,14 @@ public class UnitTest
         Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
     }
 
-    private async Task DeleteIssue(string? id, string? key)
+    private async Task DeleteIssue(string value)
     {
         try
         {
             using var client = new RestClient(_connection.JiraBaseUrl);
-            RestRequest request = new();
-
-            if (!string.IsNullOrWhiteSpace(id))
-                request = new RestRequest($"rest/api/latest/issue/{id}", Method.Delete);
-            else if (!string.IsNullOrWhiteSpace(key))
-                request = new RestRequest($"rest/api/latest/issue/{key}", Method.Delete);
-
-            var deleteResponse = await client.ExecuteAsync(request);
+            client.AddDefaultHeader("Authorization", $"Bearer {_connection.Token}");
+            var request = new RestRequest($"rest/api/latest/issue/{value}", Method.Delete);
+            await client.ExecuteAsync(request);
         }
         catch (Exception ex)
         {
