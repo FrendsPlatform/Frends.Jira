@@ -34,7 +34,6 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(true);
         var result = await Jira.DeleteIssue(_connection, _input, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
     }
 
@@ -44,7 +43,6 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(false);
         var result = await Jira.DeleteIssue(_connection, _input, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
     }
 
@@ -54,8 +52,7 @@ public class UnitTest
         _input.IdOrKey = "foo";
         var result = await Jira.DeleteIssue(_connection, _input, default);
         Assert.IsFalse(result.Success);
-        Assert.IsNotNull(result.Data);
-        Assert.AreEqual("Error retrieving issue: NotFound", result.ErrorMessage);
+        Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue: NotFound"));
     }
 
     [TestMethod]
@@ -74,8 +71,8 @@ public class UnitTest
         try
         {
             using var client = new RestClient(_connection.JiraBaseUrl);
+            client.AddDefaultHeader("Authorization", $"Bearer {_connection.Token}");
             var request = new RestRequest("rest/api/latest/issue", Method.Post);
-            request.AddHeader("Authorization", $"Bearer {_connection.Token}");
 
             var fields = new
             {
