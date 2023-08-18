@@ -12,6 +12,7 @@ public class UnitTest
     private readonly string? _pat = Environment.GetEnvironmentVariable("TestJiraPat");
     private Connection _connection = new();
     private Input _input = new();
+    private Options _options = new();
 
     [TestInitialize]
     public void Init()
@@ -26,13 +27,18 @@ public class UnitTest
         {
             IdOrKey = ""
         };
+
+        _options = new()
+        {
+            ThrowOnError = true,
+        };
     }
 
     [TestMethod]
     public async Task DeleteIssue_Key_Success()
     {
         _input.IdOrKey = await CreateIssue(true);
-        var result = await Jira.DeleteIssue(_connection, _input, default);
+        var result = await Jira.DeleteIssue(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNull(result.ErrorMessage);
     }
@@ -41,7 +47,7 @@ public class UnitTest
     public async Task DeleteIssue_Id_Success()
     {
         _input.IdOrKey = await CreateIssue(false);
-        var result = await Jira.DeleteIssue(_connection, _input, default);
+        var result = await Jira.DeleteIssue(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNull(result.ErrorMessage);
     }
@@ -50,7 +56,8 @@ public class UnitTest
     public async Task DeleteIssue_NotFound()
     {
         _input.IdOrKey = "foo";
-        var result = await Jira.DeleteIssue(_connection, _input, default);
+        _options.ThrowOnError = false;
+        var result = await Jira.DeleteIssue(_connection, _input, _options, default);
         Assert.IsFalse(result.Success);
         Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue: NotFound"));
     }
@@ -61,7 +68,7 @@ public class UnitTest
         var connection = _connection;
         connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.DeleteIssue(connection, _input, default));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.DeleteIssue(connection, _input, _options, default));
         Assert.IsNotNull(ex);
         Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
     }
