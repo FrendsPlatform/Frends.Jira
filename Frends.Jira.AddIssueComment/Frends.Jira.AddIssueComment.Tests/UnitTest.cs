@@ -1,7 +1,6 @@
 using Frends.Jira.AddIssueComment.Definitions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace Frends.Jira.AddIssueComment.Tests;
@@ -13,6 +12,7 @@ public class UnitTest
     private readonly string? _pat = Environment.GetEnvironmentVariable("TestJiraPat");
     private Connection _connection = new();
     private Input _input = new();
+    private Options _options = new();
 
     [TestInitialize]
     public void Init()
@@ -28,6 +28,11 @@ public class UnitTest
             IdOrKey = "",
             Comment = ""
         };
+
+        _options = new()
+        {
+            ThrowOnError = true,
+        };
     }
 
     [TestMethod]
@@ -36,7 +41,7 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(true);
         _input.Comment = "This is comment.";
 
-        var result = await Jira.AddIssueComment(_connection, _input, default);
+        var result = await Jira.AddIssueComment(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNull(result.ErrorMessage);
 
@@ -49,7 +54,7 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(false);
         _input.Comment = "This is comment.";
 
-        var result = await Jira.AddIssueComment(_connection, _input, default);
+        var result = await Jira.AddIssueComment(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNull(result.ErrorMessage);
 
@@ -60,8 +65,9 @@ public class UnitTest
     public async Task UpdateIssue_NotFound()
     {
         _input.IdOrKey = "Foo";
+        _options.ThrowOnError = false;
 
-        var result = await Jira.AddIssueComment(_connection, _input, default);
+        var result = await Jira.AddIssueComment(_connection, _input, _options, default);
         Assert.IsFalse(result.Success);
         Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue, Status code: NotFound"));
     }
@@ -72,7 +78,7 @@ public class UnitTest
         var connection = _connection;
         connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.AddIssueComment(connection, _input, default));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.AddIssueComment(connection, _input, _options, default));
         Assert.IsNotNull(ex);
         Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
     }
@@ -87,7 +93,7 @@ public class UnitTest
 
             var fields = new
             {
-                summary = "This is for update test",
+                summary = "This is for comment test",
                 issuetype = new { name = "Incident" },
                 description = "Desc",
                 project = new { key = "TT" }
