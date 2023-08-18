@@ -83,7 +83,7 @@ public class UnitTest
 
             var fields = new
             {
-                summary = "This is for list test",
+                summary = "This is for delete test",
                 issuetype = new { name = "Incident" },
                 description = "Desc",
                 project = new { key = "TT" }
