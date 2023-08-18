@@ -44,7 +44,6 @@ public class Jira
                         throw new Exception($"Error deleting issue: {deleteResponse.StatusCode}, {deleteResponse.Content}");
                     else
                         return new Result(false, $"Error deleting issue: {deleteResponse.StatusCode}, {deleteResponse.Content}");
-
                 }
             }
             else
