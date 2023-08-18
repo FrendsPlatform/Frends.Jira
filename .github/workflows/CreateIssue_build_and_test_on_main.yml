@@ -1,0 +1,21 @@
+name: CreateIssue build main
+
+on:
+  push:
+    branches:    
+      - main
+    paths:
+      - 'Frends.Jira.CreateIssue/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_main.yml@main
+    with:
+      workdir: Frends.Jira.CreateIssue
+      env_var_name_1: TestJiraUrl
+      env_var_name_2: TestJiraPat
+    secrets:
+      badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
+      env_var_value_1: ${{ secrets.TESTJIRAURL }}
+      env_var_value_2: ${{ secrets.TESTJIRAPAT }}
