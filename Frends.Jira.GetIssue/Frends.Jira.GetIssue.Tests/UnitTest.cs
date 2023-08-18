@@ -12,6 +12,7 @@ public class UnitTest
     private readonly string? _pat = Environment.GetEnvironmentVariable("TestJiraPat");
     private Input _input = new();
     private Connection _connection = new();
+    private Options _options = new();
 
     [TestInitialize]
     public void Init()
@@ -28,13 +29,18 @@ public class UnitTest
             IdOrKey = "",
             Jql = ""
         };
+
+        _options = new()
+        {
+            ThrowOnError = true,
+        };
     }
 
     [TestMethod]
     public async Task GetIssue_Key_Success()
     {
         _input.IdOrKey = await CreateIssue(true);
-        var result = await Jira.GetIssue(_connection, _input, default);
+        var result = await Jira.GetIssue(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
@@ -46,7 +52,7 @@ public class UnitTest
     public async Task GetIssue_Id_Success()
     {
         _input.IdOrKey = await CreateIssue(false);
-        var result = await Jira.GetIssue(_connection, _input, default);
+        var result = await Jira.GetIssue(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
@@ -61,7 +67,7 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(false);
         _input.Jql = "project=TT";
 
-        var result = await Jira.GetIssue(_connection, _input, default);
+        var result = await Jira.GetIssue(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
@@ -73,11 +79,12 @@ public class UnitTest
     public async Task GetIssue_NotFound()
     {
         _input.IdOrKey = "Foo";
+        _options.ThrowOnError = false;
 
-        var result = await Jira.GetIssue(_connection, _input, default);
+        var result = await Jira.GetIssue(_connection, _input, _options, default);
         Assert.IsFalse(result.Success);
         Assert.IsNotNull(result.Data);
-        Assert.AreEqual("Error retrieving issue: NotFound", result.ErrorMessage);
+        Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue: NotFound"));
     }
 
     [TestMethod]
@@ -85,7 +92,7 @@ public class UnitTest
     {
         _connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.GetIssue(_connection, _input, default));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.GetIssue(_connection, _input, _options, default));
         Assert.IsNotNull(ex);
         Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
     }
