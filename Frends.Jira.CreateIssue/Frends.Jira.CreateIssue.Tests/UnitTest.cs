@@ -11,6 +11,7 @@ public class UnitTest
     private readonly string? _pat = Environment.GetEnvironmentVariable("TestJiraPat");
     private Input _input = new();
     private Connection _connection = new();
+    private Options _options = new();
 
     [TestInitialize]
     public void Init()
@@ -32,12 +33,17 @@ public class UnitTest
                 new Parameters { Key = "customfield_11200", Value = "2023-08-15T13:10:00.000+0300" },
             }
         };
+
+        _options = new()
+        {
+            ThrowOnError = true,
+        };
     }
 
     [TestMethod]
     public async Task CreateIssue_Success()
     {
-        var result = await Jira.CreateIssue(_connection, _input, default);
+        var result = await Jira.CreateIssue(_connection, _input, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
@@ -45,12 +51,12 @@ public class UnitTest
     }
 
     [TestMethod]
-    public async Task CreateIssue_False()
+    public async Task CreateIssue_NotFound()
     {
-        var input = _input;
-        input.IssueType = "foo";
+        _input.IssueType = "foo";
+        _options.ThrowOnError = false;
 
-        var result = await Jira.CreateIssue(_connection, input, default);
+        var result = await Jira.CreateIssue(_connection, _input, _options, default);
         Assert.IsFalse(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.AreEqual("Error creating issue: BadRequest", result.ErrorMessage);
@@ -59,10 +65,9 @@ public class UnitTest
     [TestMethod]
     public async Task CreateIssue_Exception()
     {
-        var connection = _connection;
-        connection.JiraBaseUrl = "";
+        _connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.CreateIssue(connection, _input, default));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.CreateIssue(_connection, _input, _options, default));
         Assert.IsNotNull(ex);
         Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
     }
