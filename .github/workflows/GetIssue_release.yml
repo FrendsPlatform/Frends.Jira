@@ -1,0 +1,12 @@
+name: GetIssue release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: FrendsPlatform/FrendsTasks/.github/workflows/release.yml@main
+    with:
+      workdir: Frends.Jira.GetIssue
+    secrets:
+      feed_api_key: ${{ secrets.TASKS_FEED_API_KEY }}
