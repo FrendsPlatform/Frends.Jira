@@ -36,7 +36,7 @@ public class UnitTest
     }
 
     [TestMethod]
-    public async Task UpdateIssue_Key_Success()
+    public async Task AddIssueComment_Key_Success()
     {
         _input.IdOrKey = await CreateIssue(true);
         _input.Comment = "This is comment.";
@@ -49,7 +49,7 @@ public class UnitTest
     }
 
     [TestMethod]
-    public async Task UpdateIssue_Id_Success()
+    public async Task AddIssueComment_Id_Success()
     {
         _input.IdOrKey = await CreateIssue(false);
         _input.Comment = "This is comment.";
@@ -62,7 +62,7 @@ public class UnitTest
     }
 
     [TestMethod]
-    public async Task UpdateIssue_NotFound()
+    public async Task AddIssueComment_NotFound()
     {
         _input.IdOrKey = "Foo";
         _options.ThrowOnError = false;
@@ -73,7 +73,7 @@ public class UnitTest
     }
 
     [TestMethod]
-    public async Task UpdateIssue_Exception()
+    public async Task AddIssueComment_Exception()
     {
         var connection = _connection;
         connection.JiraBaseUrl = "";

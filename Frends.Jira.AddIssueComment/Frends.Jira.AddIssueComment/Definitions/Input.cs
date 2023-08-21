@@ -6,7 +6,7 @@
 public class Input
 {
     /// <summary>
-    /// Specify the issue ID or key to update.
+    /// Issue ID or key.
     /// </summary>
     /// <example>TT-1, 123</example>
     public string IdOrKey { get; set; }
