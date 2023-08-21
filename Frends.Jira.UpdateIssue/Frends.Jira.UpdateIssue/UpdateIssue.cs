@@ -14,7 +14,7 @@ namespace Frends.Jira.UpdateIssue;
 public class Jira
 {
     /// <summary>
-    /// Delete Jira issue.
+    /// Update Jira issue.
     /// [Documentation](https://tasks.frends.com/tasks/frends-tasks/Frends.Jira.UpdateIssue)
     /// </summary>
     /// <param name="connection">Connection parameters.</param>
