@@ -1,0 +1,7 @@
+{
+  "Tasks": [
+    {
+      "TaskMethod": "Frends.Jira.DeleteIssue.Jira.DeleteIssue"
+    }
+  ]
+}
