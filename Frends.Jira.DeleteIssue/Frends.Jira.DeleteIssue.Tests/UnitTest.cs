@@ -92,9 +92,9 @@ public class UnitTest
             request.AddJsonBody(new { fields });
 
             var response = await client.ExecuteAsync(request);
-            var responseObject = JsonConvert.DeserializeAnonymousType(response.Content, new { key = "", id = "" });
+            var responseObject = JsonConvert.DeserializeAnonymousType(response.Content!, new { key = "", id = "" });
             Thread.Sleep(5000);
-            return key ? responseObject.key : responseObject.id;
+            return key ? responseObject!.key : responseObject!.id;
         }
         catch (Exception ex)
         {
