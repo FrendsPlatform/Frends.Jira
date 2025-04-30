@@ -47,7 +47,7 @@ public class UnitTest
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
         Assert.IsNull(result.ErrorMessage);
-        await DeleteIssue(result.Data["key"].ToString());
+        await DeleteIssue(result.Data["key"]!.ToString());
     }
 
     [TestMethod]
