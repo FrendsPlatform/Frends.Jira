@@ -32,7 +32,7 @@ public class UnitTest
 
         _options = new()
         {
-            ThrowOnError = true,
+            ThrowErrorOnFailure = true,
         };
     }
 
@@ -43,9 +43,9 @@ public class UnitTest
         var json = @"{ ""fields"": { ""summary"": ""new summary""} }";
         _input.Content = JToken.Parse(json);
 
-        var result = await Jira.UpdateIssue(_connection, _input, _options, default);
+        var result = await Jira.UpdateIssue(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
 
         await DeleteIssue(_input.IdOrKey);
     }
@@ -57,9 +57,9 @@ public class UnitTest
         var json = @"{ ""fields"": { ""summary"": ""new summary""} }";
         _input.Content = JToken.Parse(json);
 
-        var result = await Jira.UpdateIssue(_connection, _input, _options, default);
+        var result = await Jira.UpdateIssue(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
 
         await DeleteIssue(_input.IdOrKey);
     }
@@ -68,11 +68,11 @@ public class UnitTest
     public async Task UpdateIssue_NotFound()
     {
         _input.IdOrKey = "Foo";
-        _options.ThrowOnError = false;
+        _options.ThrowErrorOnFailure = false;
 
-        var result = await Jira.UpdateIssue(_connection, _input, _options, default);
+        var result = await Jira.UpdateIssue(_input, _connection, _options, default);
         Assert.IsFalse(result.Success);
-        Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue, Status code: NotFound"));
+        Assert.IsTrue(result.Error.Message.Contains("Error retrieving issue, Status code: NotFound"));
     }
 
     [TestMethod]
@@ -81,9 +81,34 @@ public class UnitTest
         var connection = _connection;
         connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.UpdateIssue(connection, _input, _options, default));
+        var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => Jira.UpdateIssue(_input, connection, _options, default));
         Assert.IsNotNull(ex);
-        Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
+        Assert.IsNotNull(ex.Message);
+    }
+
+    [TestMethod]
+    public async Task UpdateIssue_Exception_ThrowErrorOnFailureFalse_ReturnsFailedResult()
+    {
+        var connection = _connection;
+        connection.JiraBaseUrl = "";
+        _options.ThrowErrorOnFailure = false;
+        _options.ErrorMessageOnFailure = "CustomErrorMessage";
+
+        var result = await Jira.UpdateIssue(_input, connection, _options, default);
+        Assert.IsFalse(result.Success);
+        Assert.IsTrue(result.Error.Message.StartsWith("CustomErrorMessage: "));
+        Assert.IsNotNull(result.Error.AdditionalInfo);
+    }
+
+    [TestMethod]
+    public async Task UpdateIssue_Exception_CustomMessage_WrapsException()
+    {
+        var connection = _connection;
+        connection.JiraBaseUrl = "";
+        _options.ErrorMessageOnFailure = "CustomErrorMessage";
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.UpdateIssue(_input, connection, _options, default));
+        Assert.AreEqual("CustomErrorMessage", ex.Message);
     }
 
     private async Task<string> CreateIssue(bool key)
