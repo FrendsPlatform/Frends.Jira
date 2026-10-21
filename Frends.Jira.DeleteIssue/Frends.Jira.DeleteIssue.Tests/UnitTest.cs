@@ -30,7 +30,7 @@ public class UnitTest
 
         _options = new()
         {
-            ThrowOnError = true,
+            ThrowErrorOnFailure = true,
         };
     }
 
@@ -38,28 +38,28 @@ public class UnitTest
     public async Task DeleteIssue_Key_Success()
     {
         _input.IdOrKey = await CreateIssue(true);
-        var result = await Jira.DeleteIssue(_connection, _input, _options, default);
+        var result = await Jira.DeleteIssue(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
     }
 
     [TestMethod]
     public async Task DeleteIssue_Id_Success()
     {
         _input.IdOrKey = await CreateIssue(false);
-        var result = await Jira.DeleteIssue(_connection, _input, _options, default);
+        var result = await Jira.DeleteIssue(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
     }
 
     [TestMethod]
     public async Task DeleteIssue_NotFound()
     {
         _input.IdOrKey = "foo";
-        _options.ThrowOnError = false;
-        var result = await Jira.DeleteIssue(_connection, _input, _options, default);
+        _options.ThrowErrorOnFailure = false;
+        var result = await Jira.DeleteIssue(_input, _connection, _options, default);
         Assert.IsFalse(result.Success);
-        Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue: NotFound"));
+        Assert.IsTrue(result.Error.Message.Contains("Error retrieving issue: NotFound"));
     }
 
     [TestMethod]
@@ -68,9 +68,9 @@ public class UnitTest
         var connection = _connection;
         connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.DeleteIssue(connection, _input, _options, default));
+        var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => Jira.DeleteIssue(_input, connection, _options, default));
         Assert.IsNotNull(ex);
-        Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
+        Assert.AreEqual("Parameter cannot be an empty string (Parameter 'baseUrl')", ex.Message);
     }
 
     public async Task<string> CreateIssue(bool key)
