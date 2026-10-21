@@ -36,17 +36,17 @@ public class UnitTest
 
         _options = new()
         {
-            ThrowOnError = true,
+            ThrowErrorOnFailure = true,
         };
     }
 
     [TestMethod]
     public async Task CreateIssue_Success()
     {
-        var result = await Jira.CreateIssue(_connection, _input, _options, default);
+        var result = await Jira.CreateIssue(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
         Assert.IsNotNull(result.Data);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
         await DeleteIssue(result.Data["key"]!.ToString());
     }
 
@@ -54,12 +54,12 @@ public class UnitTest
     public async Task CreateIssue_NotFound()
     {
         _input.IssueType = "foo";
-        _options.ThrowOnError = false;
+        _options.ThrowErrorOnFailure = false;
 
-        var result = await Jira.CreateIssue(_connection, _input, _options, default);
+        var result = await Jira.CreateIssue(_input, _connection, _options, default);
         Assert.IsFalse(result.Success);
-        Assert.IsNotNull(result.Data);
-        Assert.AreEqual("Error creating issue: BadRequest", result.ErrorMessage);
+        Assert.IsNotNull(result.Error);
+        StringAssert.Contains(result.Error.Message, "Error creating issue: BadRequest");
     }
 
     [TestMethod]
@@ -67,9 +67,30 @@ public class UnitTest
     {
         _connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.CreateIssue(_connection, _input, _options, default));
+        var ex = await Assert.ThrowsExceptionAsync<ArgumentException>(() => Jira.CreateIssue(_input, _connection, _options, default));
         Assert.IsNotNull(ex);
-        Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
+        Assert.AreEqual("Parameter cannot be an empty string (Parameter 'baseUrl')", ex.Message);
+    }
+
+    [TestMethod]
+    public async Task CreateIssue_Exception_ReturnsFailedResult()
+    {
+        _connection.JiraBaseUrl = "";
+        _options.ThrowErrorOnFailure = false;
+
+        var result = await Jira.CreateIssue(_input, _connection, _options, default);
+        Assert.IsFalse(result.Success);
+        Assert.IsNotNull(result.Error);
+    }
+
+    [TestMethod]
+    public async Task CreateIssue_Exception_UsesCustomErrorMessage()
+    {
+        _connection.JiraBaseUrl = "";
+        _options.ErrorMessageOnFailure = "CustomErrorMessage";
+
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.CreateIssue(_input, _connection, _options, default));
+        StringAssert.Contains(ex.Message, "CustomErrorMessage");
     }
 
     private async Task DeleteIssue(string value)
