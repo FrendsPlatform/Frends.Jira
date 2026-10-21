@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0] - 2026-10-21
+### Changed
+- Task now targets .NET 8.
+- Parameter order changed to Input, Connection, Options. Existing Task usages must be reconfigured.
+- Options.ThrowOnError replaced by Options.ThrowErrorOnFailure (default true) and Options.ErrorMessageOnFailure for a custom error message.
+- Result.ErrorMessage replaced by Result.Error object with Message and AdditionalInfo. When an error is returned instead of thrown, Result.Data is no longer populated.
+
 ## [1.1.0] - 2025-03-19
 ### Changed
 - Update packages:

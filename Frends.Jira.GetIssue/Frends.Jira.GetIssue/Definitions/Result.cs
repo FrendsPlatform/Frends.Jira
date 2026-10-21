@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Frends.Jira.GetIssue.Definitions;
 
@@ -20,15 +20,15 @@ public class Result
     public JToken Data { get; private set; }
 
     /// <summary>
-    /// Error message.
+    /// Error details. Null when Success is true.
     /// </summary>
-    /// <example>An error occured...</example>
-    public string ErrorMessage { get; private set; }
+    /// <example>null</example>
+    public Error Error { get; private set; }
 
-    internal Result(bool success, JToken data, string errorMessage)
+    internal Result(bool success, JToken data, Error error = null)
     {
         Success = success;
         Data = data;
-        ErrorMessage = errorMessage;
+        Error = error;
     }
 }
