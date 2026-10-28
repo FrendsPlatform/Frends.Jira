@@ -3,9 +3,9 @@
 ## [2.0.0] - 2026-10-21
 ### Changed
 - Upgraded the Task to target .NET 8.
-- Breaking: Task parameters are now ordered Input, Connection, Options, CancellationToken.
-- Breaking: Option `ThrowOnError` was replaced by `ThrowErrorOnFailure` (default true).
-- Breaking: Result property `ErrorMessage` was replaced by `Error` (with `Message` and `AdditionalInfo`).
+- [Breaking Change]: Task parameters are now ordered Input, Connection, Options, CancellationToken.
+- [Breaking Change]: Option `ThrowOnError` was replaced by `ThrowErrorOnFailure` (default true).
+- [Breaking Change]: Result property `ErrorMessage` was replaced by `Error` (with `Message` and `AdditionalInfo`).
 ### Added
 - Option `ErrorMessageOnFailure` for overriding the error message on failure.
 

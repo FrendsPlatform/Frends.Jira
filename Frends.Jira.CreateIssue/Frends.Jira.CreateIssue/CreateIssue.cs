@@ -1,11 +1,11 @@
-using Frends.Jira.CreateIssue.Definitions;
-using Frends.Jira.CreateIssue.Helpers;
-using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
 using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Frends.Jira.CreateIssue.Definitions;
+using Frends.Jira.CreateIssue.Helpers;
+using Newtonsoft.Json.Linq;
+using RestSharp;
 
 namespace Frends.Jira.CreateIssue;
 
@@ -36,13 +36,15 @@ public static class Jira
                 summary = input.Summary,
                 issuetype = new { name = input.IssueType },
                 description = input.Description,
-                project = new { key = input.ProjectKey }
+                project = new { key = input.ProjectKey },
             };
 
             // Optional parameters.
             if (input.Parameters != null)
+            {
                 foreach (var param in input.Parameters)
                     fields.GetType().GetProperty(param.Key)?.SetValue(fields, param.Value);
+            }
 
             request.AddJsonBody(new { fields });
 

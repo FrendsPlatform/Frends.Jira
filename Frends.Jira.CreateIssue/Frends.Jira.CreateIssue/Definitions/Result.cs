@@ -7,6 +7,13 @@ namespace Frends.Jira.CreateIssue.Definitions;
 /// </summary>
 public class Result
 {
+    internal Result(bool success, JToken data, Error error = null)
+    {
+        Success = success;
+        Data = data;
+        Error = error;
+    }
+
     /// <summary>
     /// Operation complete without errors.
     /// </summary>
@@ -24,11 +31,4 @@ public class Result
     /// </summary>
     /// <example>null</example>
     public Error Error { get; private set; }
-
-    internal Result(bool success, JToken data, Error error = null)
-    {
-        Success = success;
-        Data = data;
-        Error = error;
-    }
 }
