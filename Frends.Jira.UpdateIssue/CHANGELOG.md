@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0] - 2026-10-21
+### Changed
+- [Breaking] Task now targets .NET 8.
+- [Breaking] Task parameters are now in the order Input, Connection, Options.
+- [Breaking] Option `ThrowOnError` was replaced with `ThrowErrorOnFailure` (default true). Added option `ErrorMessageOnFailure` to override the error message.
+- [Breaking] Result property `ErrorMessage` was replaced with `Error`, which contains `Message` and `AdditionalInfo`.
+- When `ThrowErrorOnFailure` is true, the original exception is now thrown instead of being wrapped in an "An error occurred" exception.
+
 ## [1.1.0] - 2025-03-19
 ### Changed
 - Update packages:
