@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Frends.Jira.CreateIssue.Definitions;
 using Frends.Jira.CreateIssue.Helpers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
@@ -27,38 +30,110 @@ public static class Jira
     {
         try
         {
-            using var client = new RestClient(connection.JiraBaseUrl);
-            client.AddDefaultHeader("Authorization", $"Bearer {connection.Token}");
-            var request = new RestRequest("rest/api/latest/issue", Method.Post);
+            Validate(connection);
 
-            var fields = new
+            var apiVersion = ResolveApiVersion(connection);
+
+            using var client = new RestClient(connection.JiraBaseUrl);
+            ApplyAuthorization(client, connection);
+
+            var request = new RestRequest($"rest/api/{apiVersion}/issue", Method.Post);
+
+            var fields = new Dictionary<string, object>
             {
-                summary = input.Summary,
-                issuetype = new { name = input.IssueType },
-                description = input.Description,
-                project = new { key = input.ProjectKey },
+                ["summary"] = input.Summary,
+                ["issuetype"] = new { name = input.IssueType },
+                ["project"] = new { key = input.ProjectKey },
             };
 
-            // Optional parameters.
+            if (!string.IsNullOrEmpty(input.Description))
+            {
+                var isCloudV3 = connection.DeploymentType == JiraDeploymentType.Cloud
+                                && connection.CloudApiVersion == JiraCloudApiVersion.V3;
+
+                fields["description"] = isCloudV3 ? ParseValue(input.Description) : input.Description;
+            }
+
             if (input.Parameters != null)
             {
                 foreach (var param in input.Parameters)
-                    fields.GetType().GetProperty(param.Key)?.SetValue(fields, param.Value);
+                    fields[param.Key] = ParseValue(param.Value);
             }
 
-            request.AddJsonBody(new { fields });
+            var body = JsonConvert.SerializeObject(
+                new { fields },
+                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            request.AddStringBody(body, DataFormat.Json);
 
             var response = await client.ExecuteAsync(request, cancellationToken);
-            var data = JToken.Parse(response.Content);
 
             if (!response.IsSuccessful)
-                throw new Exception($"Error creating issue: {response.StatusCode}, {data}");
+            {
+                throw new Exception(
+                    $"Error creating issue ({connection.DeploymentType}, API v{apiVersion}): " +
+                    $"{response.StatusCode}, {response.Content ?? response.ErrorMessage}");
+            }
 
+            var data = JToken.Parse(response.Content);
             return new Result(true, data);
         }
         catch (Exception ex)
         {
             return ex.Handle(options);
         }
+    }
+
+    private static void Validate(Connection connection)
+    {
+        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
+            throw new ArgumentException("Jira base URL is required.");
+
+        if (string.IsNullOrWhiteSpace(connection.Token))
+            throw new ArgumentException("Token is required.");
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
+            throw new ArgumentException("Email is required for Jira Cloud.");
+    }
+
+    private static string ResolveApiVersion(Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+            return "2";
+
+        return connection.CloudApiVersion == JiraCloudApiVersion.V3 ? "3" : "2";
+    }
+
+    private static void ApplyAuthorization(RestClient client, Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+        {
+            client.AddDefaultHeader("Authorization", $"Bearer {connection.Token}");
+        }
+        else
+        {
+            var raw = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{connection.Email}:{connection.Token}"));
+            client.AddDefaultHeader("Authorization", $"Basic {raw}");
+        }
+    }
+
+    private static object ParseValue(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return value;
+
+        var trimmed = value.TrimStart();
+        if (trimmed.StartsWith("{") || trimmed.StartsWith("["))
+        {
+            try
+            {
+                return JToken.Parse(value);
+            }
+            catch (JsonReaderException)
+            {
+                // Not valid JSON, send as a string.
+            }
+        }
+
+        return value;
     }
 }
