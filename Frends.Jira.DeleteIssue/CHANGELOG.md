@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.0] - 2026-10-21
+### Changed
+- The Task now targets .NET 8.
+- Task parameters are now ordered Input, Connection, Options. Existing process steps must be reconfigured.
+- Replaced the `ThrowOnError` option with `ThrowErrorOnFailure` (default true) and added the `ErrorMessageOnFailure` option for a custom error message.
+- The result now contains an `Error` object (`Message`, `AdditionalInfo`) instead of the `ErrorMessage` string. `Error` is null when the Task succeeds.
+- Invalid or missing input, connection and option values are now reported as validation errors.
+
 ## [1.1.0] - 2025-03-19
 ### Changed
 - Update packages:
