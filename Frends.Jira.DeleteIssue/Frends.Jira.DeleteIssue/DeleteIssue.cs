@@ -1,10 +1,12 @@
-﻿using Frends.Jira.DeleteIssue.Definitions;
-using Frends.Jira.DeleteIssue.Helpers;
-using RestSharp;
 using System;
 using System.ComponentModel;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Frends.Jira.DeleteIssue.Definitions;
+using Frends.Jira.DeleteIssue.Helpers;
+using RestSharp;
 
 namespace Frends.Jira.DeleteIssue;
 
@@ -27,27 +29,96 @@ public static class Jira
         try
         {
             ValidationHandler.Run(input, connection, options);
+            Validate(input, connection);
+            var apiVersion = ResolveApiVersion(connection);
 
             using var client = new RestClient(connection.JiraBaseUrl);
-            client.AddDefaultHeader("Authorization", $"******");
+            SetAuthorization(client, connection);
 
-            var request = new RestRequest($"rest/api/latest/issue/{input.IdOrKey}", Method.Get);
-            var response = await client.ExecuteAsync(request, cancellationToken);
+            var issuePath = $"rest/api/{apiVersion}/issue/{{issueId}}";
+            var getRequest = new RestRequest(issuePath, Method.Get)
+                .AddUrlSegment("issueId", input.IdOrKey);
+            var getResponse = await client.ExecuteAsync(getRequest, cancellationToken);
 
-            if (!response.IsSuccessful)
-                throw new Exception($"Error retrieving issue: {response.StatusCode}, {response.Content}");
+            if (!getResponse.IsSuccessful)
+            {
+                throw new Exception(
+                    $"Error retrieving issue ({connection.DeploymentType}, API v{apiVersion}): " +
+                    $"{getResponse.StatusCode}, {getResponse.Content ?? getResponse.ErrorMessage}");
+            }
 
-            var deleteRequest = new RestRequest($"rest/api/latest/issue/{input.IdOrKey}", Method.Delete);
+            var deleteRequest = new RestRequest(issuePath, Method.Delete)
+                .AddUrlSegment("issueId", input.IdOrKey);
             var deleteResponse = await client.ExecuteAsync(deleteRequest, cancellationToken);
 
             if (!deleteResponse.IsSuccessful)
-                throw new Exception($"Error deleting issue: {deleteResponse.StatusCode}, {deleteResponse.Content}");
+            {
+                throw new Exception(
+                    $"Error deleting issue ({connection.DeploymentType}, API v{apiVersion}): " +
+                    $"{deleteResponse.StatusCode}, {deleteResponse.Content ?? deleteResponse.ErrorMessage}");
+            }
 
             return new Result(true);
         }
         catch (Exception ex)
         {
             return ex.Handle(options);
+        }
+    }
+
+    private static void Validate(Input input, Connection connection)
+    {
+        if (!Enum.IsDefined(connection.DeploymentType))
+        {
+            throw new ArgumentOutOfRangeException(nameof(connection.DeploymentType), connection.DeploymentType, "Unsupported Jira deployment type.");
+        }
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && !Enum.IsDefined(connection.CloudApiVersion))
+        {
+            throw new ArgumentOutOfRangeException(nameof(connection.CloudApiVersion), connection.CloudApiVersion, "Unsupported Jira Cloud API version.");
+        }
+
+        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
+        {
+            throw new ArgumentException("Jira base URL is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(connection.Token))
+        {
+            throw new ArgumentException("Token is required.");
+        }
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
+        {
+            throw new ArgumentException("Email is required for Jira Cloud.");
+        }
+
+        if (string.IsNullOrWhiteSpace(input.IdOrKey))
+        {
+            throw new ArgumentException("Issue ID or key is required.");
+        }
+    }
+
+    private static string ResolveApiVersion(Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+        {
+            return "2";
+        }
+
+        return connection.CloudApiVersion == JiraCloudApiVersion.V3 ? "3" : "2";
+    }
+
+    private static void SetAuthorization(RestClient client, Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+        {
+            client.AddDefaultHeader("Authorization", new AuthenticationHeaderValue("Bearer", connection.Token).ToString());
+        }
+        else
+        {
+            var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{connection.Email}:{connection.Token}"));
+            client.AddDefaultHeader("Authorization", new AuthenticationHeaderValue("Basic", credentials).ToString());
         }
     }
 }

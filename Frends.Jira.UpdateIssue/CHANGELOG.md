@@ -3,11 +3,11 @@
 ## [2.0.0] - 2026-10-21
 ### Changed
 - Task now targets .NET 8.
-- [Breaking] Task parameters are now in the order Input, Connection, Options, CancellationToken.
-- [Breaking] Option `ThrowOnError` was replaced with `ThrowErrorOnFailure` (default true). Added option `ErrorMessageOnFailure` to override the error message.
-- [Breaking] Result property `ErrorMessage` was replaced with `Error`, which contains `Message` and `AdditionalInfo`.
-- [Breaking] Jira Cloud is now the default deployment and uses REST API v3. For Jira Data Center, set `DeploymentType` to `DataCenter`.
-- [Breaking] Jira Cloud now requires the `Email` setting together with an API token.
+- [Breaking Change]  Task parameters are now in the order Input, Connection, Options, CancellationToken.
+- [Breaking Change]  Option `ThrowOnError` was replaced with `ThrowErrorOnFailure` (default true). Added option `ErrorMessageOnFailure` to override the error message.
+- [Breaking Change]  Result property `ErrorMessage` was replaced with `Error`, which contains `Message` and `AdditionalInfo`.
+- [Breaking Change]  Jira Cloud is now the default deployment and uses REST API v3. For Jira Data Center, set `DeploymentType` to `DataCenter`.
+- [Breaking Change]  Jira Cloud now requires the `Email` setting together with an API token.
 - Error messages now include the Jira deployment type and API version, for example `Error updating issue (DataCenter, API v2): BadRequest`.
 - When `ThrowErrorOnFailure` is true, the original exception is now thrown instead of being wrapped in an "An error occurred" exception.
 ### Added
