@@ -1,11 +1,13 @@
-using Frends.Jira.GetIssue.Definitions;
-using Newtonsoft.Json.Linq;
-using RestSharp;
 using System;
-using Frends.Jira.GetIssue.Helpers;
 using System.ComponentModel;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Frends.Jira.GetIssue.Definitions;
+using Frends.Jira.GetIssue.Helpers;
+using Newtonsoft.Json.Linq;
+using RestSharp;
 
 namespace Frends.Jira.GetIssue;
 
@@ -27,31 +29,92 @@ public static class Jira
     {
         try
         {
-            using var client = new RestClient(connection.JiraBaseUrl);
-            client.AddDefaultHeader("Authorization", $"Bearer {connection.Token}");
-            RestRequest request = new();
+            Validate(connection);
+            var apiVersion = ResolveApiVersion(connection);
 
+            using var client = new RestClient(connection.JiraBaseUrl);
+            SetAuthorization(client, connection);
+
+            RestRequest request;
             switch (input.SearchType)
             {
                 case SearchType.IdOrKey:
-                    request = new RestRequest($"rest/api/latest/issue/{input.IdOrKey}", Method.Get);
+                    if (string.IsNullOrWhiteSpace(input.IdOrKey))
+                        throw new ArgumentException("Issue ID or key is required.");
+                    request = new RestRequest($"rest/api/{apiVersion}/issue/{{issueId}}", Method.Get)
+                        .AddUrlSegment("issueId", input.IdOrKey);
                     break;
                 case SearchType.Jql:
-                    request = new RestRequest($"rest/api/latest/search?jql={input.Jql}", Method.Get);
+                    if (string.IsNullOrWhiteSpace(input.Jql))
+                        throw new ArgumentException("JQL is required.");
+                    var isCloud = connection.DeploymentType == JiraDeploymentType.Cloud;
+                    request = new RestRequest($"rest/api/{apiVersion}/{(isCloud ? "search/jql" : "search")}", Method.Get)
+                        .AddQueryParameter("jql", input.Jql);
+
+                    // Cloud returns only issue IDs unless fields are requested. DC returns full issues by default.
+                    if (isCloud)
+                    {
+                        request.AddQueryParameter("fields", "*all");
+                    }
+
                     break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(input.SearchType), input.SearchType, "Unsupported search type.");
             }
 
             var response = await client.ExecuteAsync(request, cancellationToken);
-            var data = JToken.Parse(response.Content);
-
             if (!response.IsSuccessful)
-                throw new Exception($"Error retrieving issue: {response.StatusCode}, {data}");
+            {
+                throw new Exception(
+                    $"Error retrieving issue ({connection.DeploymentType}, API v{apiVersion}): " +
+                    $"{response.StatusCode}, {response.Content ?? response.ErrorMessage}");
+            }
 
+            var data = JToken.Parse(response.Content);
             return new Result(true, data);
         }
         catch (Exception ex)
         {
             return ex.Handle(options);
+        }
+    }
+
+    private static void Validate(Connection connection)
+    {
+        if (!Enum.IsDefined(connection.DeploymentType))
+            throw new ArgumentOutOfRangeException(nameof(connection.DeploymentType), connection.DeploymentType, "Unsupported Jira deployment type.");
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && !Enum.IsDefined(connection.CloudApiVersion))
+            throw new ArgumentOutOfRangeException(nameof(connection.CloudApiVersion), connection.CloudApiVersion, "Unsupported Jira Cloud API version.");
+
+        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
+            throw new ArgumentException("Jira base URL is required.");
+
+        if (string.IsNullOrWhiteSpace(connection.Token))
+            throw new ArgumentException("Token is required.");
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
+            throw new ArgumentException("Email is required for Jira Cloud.");
+    }
+
+    private static string ResolveApiVersion(Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+            return "2";
+
+        return connection.CloudApiVersion == JiraCloudApiVersion.V3 ? "3" : "2";
+    }
+
+    private static void SetAuthorization(RestClient client, Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+        {
+            client.AddDefaultHeader("Authorization", new AuthenticationHeaderValue("Bearer", connection.Token).ToString());
+        }
+        else
+        {
+            var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{connection.Email}:{connection.Token}"));
+            client.AddDefaultHeader("Authorization", new AuthenticationHeaderValue("Basic", credentials).ToString());
         }
     }
 }
