@@ -31,7 +31,7 @@ public class UnitTest
 
         _options = new()
         {
-            ThrowOnError = true,
+            ThrowErrorOnFailure = true,
         };
     }
 
@@ -41,9 +41,9 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(true);
         _input.Comment = "This is comment.";
 
-        var result = await Jira.AddIssueComment(_connection, _input, _options, default);
+        var result = await Jira.AddIssueComment(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
 
         await DeleteIssue(_input.IdOrKey);
     }
@@ -54,9 +54,9 @@ public class UnitTest
         _input.IdOrKey = await CreateIssue(false);
         _input.Comment = "This is comment.";
 
-        var result = await Jira.AddIssueComment(_connection, _input, _options, default);
+        var result = await Jira.AddIssueComment(_input, _connection, _options, default);
         Assert.IsTrue(result.Success);
-        Assert.IsNull(result.ErrorMessage);
+        Assert.IsNull(result.Error);
 
         await DeleteIssue(_input.IdOrKey);
     }
@@ -65,11 +65,11 @@ public class UnitTest
     public async Task AddIssueComment_NotFound()
     {
         _input.IdOrKey = "Foo";
-        _options.ThrowOnError = false;
+        _options.ThrowErrorOnFailure = false;
 
-        var result = await Jira.AddIssueComment(_connection, _input, _options, default);
+        var result = await Jira.AddIssueComment(_input, _connection, _options, default);
         Assert.IsFalse(result.Success);
-        Assert.IsTrue(result.ErrorMessage.Contains("Error retrieving issue, Status code: NotFound"));
+        Assert.IsTrue(result.Error.Message.Contains("Error retrieving issue, Status code: NotFound"));
     }
 
     [TestMethod]
@@ -78,9 +78,9 @@ public class UnitTest
         var connection = _connection;
         connection.JiraBaseUrl = "";
 
-        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.AddIssueComment(connection, _input, _options, default));
+        var ex = await Assert.ThrowsExceptionAsync<Exception>(() => Jira.AddIssueComment(_input, connection, _options, default));
         Assert.IsNotNull(ex);
-        Assert.AreEqual("An error occurred: Value cannot be null. (Parameter 'baseUrl')", ex.Message);
+        Assert.AreEqual("Value cannot be null. (Parameter 'baseUrl')", ex.Message);
     }
 
     private async Task<string> CreateIssue(bool key)
