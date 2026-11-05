@@ -1,11 +1,14 @@
+using System;
+using System.ComponentModel;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Frends.Jira.UpdateIssue.Definitions;
 using Frends.Jira.UpdateIssue.Helpers;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
-using System;
-using System.ComponentModel;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Frends.Jira.UpdateIssue;
 
@@ -27,28 +30,92 @@ public static class Jira
     {
         try
         {
+            Validate(input, connection);
+            var apiVersion = ResolveApiVersion(connection);
+
             using var client = new RestClient(connection.JiraBaseUrl);
-            client.AddDefaultHeader("Authorization", $"Bearer {connection.Token}");
+            SetAuthorization(client, connection);
 
-            var request = new RestRequest($"rest/api/latest/issue/{input.IdOrKey}", Method.Get);
-            var response = await client.ExecuteAsync(request, cancellationToken);
+            var issuePath = $"rest/api/{apiVersion}/issue/{{issueId}}";
 
-            if (!response.IsSuccessful)
-                throw new Exception($"Error retrieving issue, Status code: {response.StatusCode}, Content: {response.Content}");
-
-            var updateRequest = new RestRequest($"/rest/api/2/issue/{input.IdOrKey}", Method.Put);
-            updateRequest.AddParameter("application/json", JsonConvert.SerializeObject(input.Content), ParameterType.RequestBody);
+            var updateRequest = new RestRequest(issuePath, Method.Put)
+                .AddUrlSegment("issueId", input.IdOrKey);
+            updateRequest.AddStringBody(JsonConvert.SerializeObject(input.Content), DataFormat.Json);
 
             var updateResponse = await client.ExecuteAsync(updateRequest, cancellationToken);
-
             if (!updateResponse.IsSuccessful)
-                throw new Exception($"Error updating issue, Status code: {updateResponse.StatusCode}, Content: {updateResponse.Content}.");
+            {
+                throw new Exception(
+                    $"Error updating issue ({connection.DeploymentType}, API v{apiVersion}): " +
+                    $"{updateResponse.StatusCode}, {updateResponse.Content ?? updateResponse.ErrorMessage}");
+            }
 
             return new Result(true);
         }
         catch (Exception ex)
         {
             return ex.Handle(options);
+        }
+    }
+
+    private static void Validate(Input input, Connection connection)
+    {
+        if (!Enum.IsDefined(connection.DeploymentType))
+        {
+            throw new ArgumentOutOfRangeException(nameof(connection.DeploymentType), connection.DeploymentType, "Unsupported Jira deployment type.");
+        }
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && !Enum.IsDefined(connection.CloudApiVersion))
+        {
+            throw new ArgumentOutOfRangeException(nameof(connection.CloudApiVersion), connection.CloudApiVersion, "Unsupported Jira Cloud API version.");
+        }
+
+        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
+        {
+            throw new ArgumentException("Jira base URL is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(connection.Token))
+        {
+            throw new ArgumentException("Token is required.");
+        }
+
+        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
+        {
+            throw new ArgumentException("Email is required for Jira Cloud.");
+        }
+
+        if (string.IsNullOrWhiteSpace(input.IdOrKey))
+        {
+            throw new ArgumentException("Issue ID or key is required.");
+        }
+
+        if (input.Content == null || input.Content.Type != JTokenType.Object)
+        {
+            throw new ArgumentException("Update content must be a JSON object.");
+        }
+    }
+
+    private static string ResolveApiVersion(Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+        {
+            return "2";
+        }
+
+        return connection.CloudApiVersion == JiraCloudApiVersion.V3 ? "3" : "2";
+    }
+
+    private static void SetAuthorization(RestClient client, Connection connection)
+    {
+        if (connection.DeploymentType == JiraDeploymentType.DataCenter)
+        {
+            client.AddDefaultHeader("Authorization", new AuthenticationHeaderValue("Bearer", connection.Token).ToString());
+        }
+        else
+        {
+            var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{connection.Email}:{connection.Token}"));
+            client.AddDefaultHeader("Authorization", new AuthenticationHeaderValue("Basic", credentials).ToString());
         }
     }
 }
