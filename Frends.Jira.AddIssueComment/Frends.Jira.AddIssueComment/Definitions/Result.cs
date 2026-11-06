@@ -1,4 +1,4 @@
-﻿namespace Frends.Jira.AddIssueComment.Definitions;
+namespace Frends.Jira.AddIssueComment.Definitions;
 
 /// <summary>
 /// Task's result.
@@ -12,14 +12,14 @@ public class Result
     public bool Success { get; private set; }
 
     /// <summary>
-    /// Error message.
+    /// Error details. Null when Success is true.
     /// </summary>
-    /// <example>An error occured...</example>
-    public string ErrorMessage { get; private set; }
+    /// <example>null</example>
+    public Error Error { get; private set; }
 
-    internal Result(bool success, string errorMessage)
+    internal Result(bool success, Error error = null)
     {
         Success = success;
-        ErrorMessage = errorMessage;
+        Error = error;
     }
 }

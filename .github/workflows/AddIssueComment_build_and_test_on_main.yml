@@ -13,9 +13,13 @@ jobs:
     uses: FrendsPlatform/FrendsTasks/.github/workflows/linux_build_main.yml@main
     with:
       workdir: Frends.Jira.AddIssueComment
-      env_var_name_1: TestJiraUrl
-      env_var_name_2: TestJiraPat
+      env_var_name_1: TestJiraCloudUrl
+      env_var_name_2: TestJiraCloudEmail
+      env_var_name_3: TestJiraCloudToken
+      env_var_name_4: TestJiraCloudProject
     secrets:
       badge_service_api_key: ${{ secrets.BADGE_SERVICE_API_KEY }}
-      env_var_value_1: ${{ secrets.TESTJIRAURL }}
-      env_var_value_2: ${{ secrets.TESTJIRAPAT }}
+      env_var_value_1: ${{ secrets.TESTJIRACLOUDURL }}
+      env_var_value_2: ${{ secrets.TESTJIRACLOUDEMAIL }}
+      env_var_value_3: ${{ secrets.TESTJIRACLOUDTOKEN }}
+      env_var_value_4: ${{ secrets.TESTJIRACLOUDPROJECT }}

@@ -1,4 +1,4 @@
-﻿namespace Frends.Jira.CreateIssue.Definitions;
+namespace Frends.Jira.CreateIssue.Definitions;
 
 /// <summary>
 /// Input parameters.
@@ -12,7 +12,7 @@ public class Input
     public string ProjectKey { get; set; }
 
     /// <summary>
-    /// Project summary.
+    /// Issue summary.
     /// </summary>
     /// <example>This is summary.</example>
     public string Summary { get; set; }
@@ -24,35 +24,19 @@ public class Input
     public string IssueType { get; set; }
 
     /// <summary>
-    /// Description.
+    /// Issue description. The format depends on the Jira version:
+    /// Data Center and Cloud API v2 use plain text, for example: This is description.
+    /// Cloud API v3 requires a valid Atlassian Document Format (ADF) JSON document. Plain text is not converted.
     /// </summary>
-    /// <example>This is description.</example>
+    /// <example>{ "type": "doc", "version": 1, "content": [ { "type": "paragraph", "content": [ { "type": "text", "text": "This is description." } ] } ] }</example>
     public string Description { get; set; }
 
     /// <summary>
-    /// Optional parameters such as ticket creator (e.g. customfield_14102). 
+    /// Optional parameters such as ticket creator (e.g. customfield_14102).
     /// </summary>
     /// <example>[
     /// { Key = "customfield_1", Value = "foo" },
     /// { Key = "customfield_2", Value = "bar" }
     /// ]</example>
     public Parameters[] Parameters { get; set; }
-}
-
-/// <summary>
-/// Procedure parameter.
-/// </summary>
-public class Parameters
-{
-    /// <summary>
-    /// Key.
-    /// </summary>
-    /// <example>customfield_1</example>
-    public string Key { get; set; }
-
-    /// <summary>
-    /// Value.
-    /// </summary>
-    /// <example>foo</example>
-    public string Value { get; set; }
 }
