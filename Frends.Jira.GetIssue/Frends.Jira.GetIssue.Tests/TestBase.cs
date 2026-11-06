@@ -27,14 +27,14 @@ internal abstract class TestBase
         };
     }
 
-    protected static async Task<(string Id, string Key)> CreateIssue(Connection connection, string? description = null)
+    protected static async Task<(string Id, string Key)> CreateIssue(Connection connection, string? description = null, string? summaryMarker = null)
     {
         using var client = CreateCloudClient(connection);
         var request = new RestRequest("rest/api/2/issue", Method.Post);
 
         var fields = new Dictionary<string, object>
         {
-            ["summary"] = $"GetIssue test {Guid.NewGuid():N}",
+            ["summary"] = summaryMarker is null ? $"GetIssue test {Guid.NewGuid():N}" : $"GetIssue {summaryMarker} {Guid.NewGuid():N}",
             ["issuetype"] = new { name = "Task" },
             ["project"] = new { key = Environment.GetEnvironmentVariable("TestJiraCloudProject") ?? "TT" },
         };

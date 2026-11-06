@@ -69,7 +69,6 @@ internal class JiraCloudTests : TestBase
             Jql = $"project = {Environment.GetEnvironmentVariable("TestJiraCloudProject") ?? "TT"} AND key = {issue.Key}",
         };
 
-        // The search index is eventually consistent, so retry for a short time.
         JToken? match = null;
         for (var attempt = 0; attempt < 10 && match == null; attempt++)
         {
@@ -81,7 +80,84 @@ internal class JiraCloudTests : TestBase
         }
 
         Assert.That(match, Is.Not.Null, $"Issue {issue.Key} was not found by JQL after retries.");
-        Assert.That(match!["fields"], Is.Not.Null, "Search result should include issue fields.");
+        Assert.That(match!["fields"]?["summary"], Is.Not.Null, "Search result should include issue fields.");
+    }
+
+    [Test]
+    public async Task GetIssue_ByJql_CombinesCloudPages()
+    {
+        var connection = RequireCloudConnection(JiraCloudApiVersion.V3);
+        var marker = $"getissuepagination{Guid.NewGuid():N}";
+        var issues = new List<(string Id, string Key)>();
+        for (var index = 0; index < 3; index++)
+            issues.Add(await CreateAndTrack(connection, summaryMarker: marker));
+
+        var expectedKeys = issues.Select(issue => issue.Key).ToHashSet();
+        var input = new Input
+        {
+            SearchType = SearchType.Jql,
+            Jql = $"project = {Environment.GetEnvironmentVariable("TestJiraCloudProject") ?? "TT"} AND summary ~ \"{marker}\"",
+            GetAllPages = true,
+            MaxResults = 2,
+            MaxIssues = 10,
+        };
+
+        JArray? matches = null;
+        for (var attempt = 0; attempt < 10 && matches is null; attempt++)
+        {
+            var result = await Jira.GetIssue(input, connection, options, default);
+            var pageIssues = result.Data["issues"] as JArray;
+            if (pageIssues is not null && expectedKeys.IsSubsetOf(pageIssues.Select(issue => issue["key"]!.ToString())))
+                matches = pageIssues;
+            else
+                await Task.Delay(TimeSpan.FromSeconds(2));
+        }
+
+        Assert.That(matches, Is.Not.Null, "All marked issues should be found after search-index retries.");
+        Assert.That(matches!.Select(issue => issue["key"]!.ToString()), Is.SupersetOf(expectedKeys));
+        Assert.That(matches?.Count, Is.GreaterThanOrEqualTo(3));
+    }
+
+    [Test]
+    public async Task GetIssue_ByJql_UsesCloudNextPageToken()
+    {
+        var connection = RequireCloudConnection(JiraCloudApiVersion.V3);
+        var marker = $"getissuemanualpage{Guid.NewGuid():N}";
+        var issues = new List<(string Id, string Key)>();
+        for (var index = 0; index < 3; index++)
+            issues.Add(await CreateAndTrack(connection, summaryMarker: marker));
+
+        var expectedKeys = issues.Select(issue => issue.Key).ToHashSet();
+        var input = new Input
+        {
+            SearchType = SearchType.Jql,
+            Jql = $"project = {Environment.GetEnvironmentVariable("TestJiraCloudProject") ?? "TT"} AND summary ~ \"{marker}\"",
+            MaxResults = 2,
+        };
+
+        JToken? firstPage = null;
+        for (var attempt = 0; attempt < 10 && firstPage is null; attempt++)
+        {
+            var result = await Jira.GetIssue(input, connection, options, default);
+            var pageIssues = result.Data["issues"] as JArray;
+            var pageKeys = pageIssues?.Select(issue => issue["key"]!.ToString()).ToHashSet();
+            if (pageIssues is { Count: 2 } && pageKeys!.IsSubsetOf(expectedKeys) &&
+                !string.IsNullOrWhiteSpace(result.Data["nextPageToken"]?.ToString()))
+                firstPage = result.Data;
+            else
+                await Task.Delay(TimeSpan.FromSeconds(2));
+        }
+
+        Assert.That(firstPage, Is.Not.Null, "The first page and its cursor should be available after search-index retries.");
+        var nextPageToken = firstPage!["nextPageToken"]!.ToString();
+        input.NextPageToken = nextPageToken;
+
+        var nextPage = await Jira.GetIssue(input, connection, options, default);
+
+        var firstKeys = ((JArray)firstPage["issues"]!).Select(issue => issue["key"]!.ToString());
+        var nextKeys = ((JArray)nextPage.Data["issues"]!).Select(issue => issue["key"]!.ToString());
+        Assert.That(nextKeys, Is.SupersetOf(expectedKeys.Except(firstKeys)));
+        Assert.That(nextKeys.Intersect(firstKeys), Is.Empty);
     }
 
     [TestCase(JiraCloudApiVersion.V2, JTokenType.String)]
@@ -126,9 +202,9 @@ internal class JiraCloudTests : TestBase
         IdOrKey = value,
     };
 
-    private async Task<(string Id, string Key)> CreateAndTrack(Connection connection, string? description = null)
+    private async Task<(string Id, string Key)> CreateAndTrack(Connection connection, string? description = null, string? summaryMarker = null)
     {
-        var issue = await CreateIssue(connection, description);
+        var issue = await CreateIssue(connection, description, summaryMarker);
         created.Add((connection, issue.Key));
         return issue;
     }

@@ -1,5 +1,7 @@
 using System;
 using System.ComponentModel;
+using System.IO;
+using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
@@ -35,48 +37,178 @@ public static class Jira
             using var client = new RestClient(connection.JiraBaseUrl);
             SetAuthorization(client, connection);
 
-            RestRequest request;
             switch (input.SearchType)
             {
                 case SearchType.IdOrKey:
                     if (string.IsNullOrWhiteSpace(input.IdOrKey))
                         throw new ArgumentException("Issue ID or key is required.");
-                    request = new RestRequest($"rest/api/{apiVersion}/issue/{{issueId}}", Method.Get)
+                    var issueRequest = new RestRequest($"rest/api/{apiVersion}/issue/{{issueId}}", Method.Get)
                         .AddUrlSegment("issueId", input.IdOrKey);
-                    break;
+                    var issueData = await ExecuteRequestAsync(client, issueRequest, connection, apiVersion, cancellationToken);
+                    return new Result(true, issueData);
                 case SearchType.Jql:
                     if (string.IsNullOrWhiteSpace(input.Jql))
                         throw new ArgumentException("JQL is required.");
-                    var isCloud = connection.DeploymentType == JiraDeploymentType.Cloud;
-                    request = new RestRequest($"rest/api/{apiVersion}/{(isCloud ? "search/jql" : "search")}", Method.Get)
-                        .AddQueryParameter("jql", input.Jql);
-
-                    // Cloud returns only issue IDs unless fields are requested. DC returns full issues by default.
-                    if (isCloud)
-                    {
-                        request.AddQueryParameter("fields", "*all");
-                    }
-
-                    break;
+                    ValidatePagination(input, connection.DeploymentType);
+                    var searchData = await SearchJqlAsync(client, input, connection, apiVersion, cancellationToken);
+                    return new Result(true, searchData);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(input.SearchType), input.SearchType, "Unsupported search type.");
             }
-
-            var response = await client.ExecuteAsync(request, cancellationToken);
-            if (!response.IsSuccessful)
-            {
-                throw new Exception(
-                    $"Error retrieving issue ({connection.DeploymentType}, API v{apiVersion}): " +
-                    $"{response.StatusCode}, {response.Content ?? response.ErrorMessage}");
-            }
-
-            var data = JToken.Parse(response.Content);
-            return new Result(true, data);
         }
         catch (Exception ex)
         {
             return ex.Handle(options);
         }
+    }
+
+    private static async Task<JObject> SearchJqlAsync(
+        RestClient client,
+        Input input,
+        Connection connection,
+        string apiVersion,
+        CancellationToken cancellationToken)
+    {
+        var isCloud = connection.DeploymentType == JiraDeploymentType.Cloud;
+        var firstPageSize = input.GetAllPages ? Math.Min(input.MaxResults, input.MaxIssues) : input.MaxResults;
+        var firstPage = await ExecuteRequestAsync(
+            client,
+            CreateSearchRequest(input, isCloud, apiVersion, input.StartAt ?? 0, firstPageSize, input.NextPageToken),
+            connection,
+            apiVersion,
+            cancellationToken);
+
+        if (!input.GetAllPages)
+            return firstPage;
+
+        var resultData = (JObject)firstPage.DeepClone();
+        var combinedIssues = new JArray();
+        var page = firstPage;
+
+        while (true)
+        {
+            var pageIssues = GetIssues(page);
+            var remaining = input.MaxIssues - combinedIssues.Count;
+            foreach (var issue in pageIssues.Take(remaining))
+                combinedIssues.Add(issue.DeepClone());
+
+            if (combinedIssues.Count >= input.MaxIssues)
+                break;
+
+            if (isCloud)
+            {
+                var isLast = page["isLast"]?.Value<bool?>();
+                if (isLast == true || pageIssues.Count == 0)
+                    break;
+                var nextPageToken = page["nextPageToken"]?.Value<string>();
+                if (string.IsNullOrWhiteSpace(nextPageToken))
+                    throw new InvalidDataException("Jira Cloud JQL response did not include a nextPageToken for another page.");
+
+                page = await ExecuteRequestAsync(
+                    client,
+                    CreateSearchRequest(input, isCloud, apiVersion, 0, Math.Min(input.MaxResults, input.MaxIssues - combinedIssues.Count), nextPageToken),
+                    connection,
+                    apiVersion,
+                    cancellationToken);
+                CopyCloudPageMetadata(resultData, page);
+            }
+            else
+            {
+                var total = page["total"]?.Value<int?>();
+                var startAt = page["startAt"]?.Value<int?>();
+                if (total is null || startAt is null)
+                    throw new InvalidDataException("Jira Data Center JQL response did not include total or startAt.");
+                if (pageIssues.Count == 0 && startAt.Value < total.Value)
+                    throw new InvalidDataException("Jira Data Center JQL response returned an empty page before reaching total.");
+                if (startAt.Value + pageIssues.Count >= total.Value)
+                    break;
+
+                var nextStartAt = startAt.Value + pageIssues.Count;
+                page = await ExecuteRequestAsync(
+                    client,
+                    CreateSearchRequest(input, isCloud, apiVersion, nextStartAt, Math.Min(input.MaxResults, input.MaxIssues - combinedIssues.Count), null),
+                    connection,
+                    apiVersion,
+                    cancellationToken);
+                resultData["total"] = page["total"]?.DeepClone();
+            }
+        }
+
+        resultData["issues"] = combinedIssues;
+        return resultData;
+    }
+
+    private static RestRequest CreateSearchRequest(Input input, bool isCloud, string apiVersion, int startAt, int maxResults, string? nextPageToken)
+    {
+        var endpoint = isCloud ? "search/jql" : "search";
+        var request = new RestRequest($"rest/api/{apiVersion}/{endpoint}", Method.Get)
+            .AddQueryParameter("jql", input.Jql)
+            .AddQueryParameter("maxResults", maxResults.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        if (isCloud)
+        {
+            request.AddQueryParameter("fields", "*all");
+            if (!string.IsNullOrWhiteSpace(nextPageToken))
+                request.AddQueryParameter("nextPageToken", nextPageToken);
+        }
+        else
+        {
+            request.AddQueryParameter("startAt", startAt.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return request;
+    }
+
+    private static async Task<JObject> ExecuteRequestAsync(
+        RestClient client,
+        RestRequest request,
+        Connection connection,
+        string apiVersion,
+        CancellationToken cancellationToken)
+    {
+        var response = await client.ExecuteAsync(request, cancellationToken);
+        if (!response.IsSuccessful)
+        {
+            throw new Exception(
+                $"Error retrieving issue ({connection.DeploymentType}, API v{apiVersion}): " +
+                $"{response.StatusCode}, {response.Content ?? response.ErrorMessage}");
+        }
+
+        return JObject.Parse(response.Content!);
+    }
+
+    private static JArray GetIssues(JObject page) => page["issues"] as JArray
+        ?? throw new InvalidDataException("Jira JQL response did not contain an issues array.");
+
+    private static void CopyCloudPageMetadata(JObject resultData, JObject page)
+    {
+        if (page["isLast"] is not null)
+            resultData["isLast"] = page["isLast"]!.DeepClone();
+        else
+            resultData.Remove("isLast");
+
+        if (page["nextPageToken"] is not null)
+            resultData["nextPageToken"] = page["nextPageToken"]!.DeepClone();
+        else
+            resultData.Remove("nextPageToken");
+    }
+
+    private static void ValidatePagination(Input input, JiraDeploymentType deploymentType)
+    {
+        if (input.StartAt < 0)
+            throw new ArgumentException("StartAt must be zero or greater.", nameof(input.StartAt));
+        if (deploymentType == JiraDeploymentType.Cloud && input.StartAt.HasValue)
+            throw new ArgumentException("StartAt is only supported for Jira Data Center.", nameof(input.StartAt));
+        if (deploymentType == JiraDeploymentType.DataCenter && !string.IsNullOrWhiteSpace(input.NextPageToken))
+            throw new ArgumentException("NextPageToken is only supported for Jira Cloud.", nameof(input.NextPageToken));
+        if (input.GetAllPages && input.StartAt.HasValue)
+            throw new ArgumentException("StartAt cannot be used when GetAllPages is true.", nameof(input.StartAt));
+        if (input.GetAllPages && !string.IsNullOrWhiteSpace(input.NextPageToken))
+            throw new ArgumentException("NextPageToken cannot be used when GetAllPages is true.", nameof(input.NextPageToken));
+        if (input.MaxResults < 1)
+            throw new ArgumentOutOfRangeException(nameof(input.MaxResults), "MaxResults must be greater than zero.");
+        if (input.GetAllPages && input.MaxIssues < 1)
+            throw new ArgumentOutOfRangeException(nameof(input.MaxIssues), "MaxIssues must be greater than zero.");
     }
 
     private static void Validate(Connection connection)

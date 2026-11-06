@@ -20,13 +20,12 @@ public class Result
     /// <example>true</example>
     public bool Success { get; private set; }
 
-    // TODO Pagination
     /// <summary>
-    /// Issue (search by ID or key) or search results (search by JQL) returned by Jira, as JToken.
-    /// With Jira Cloud API v3 the description is an ADF object, with API v2 and Data Center it is a string.
-    /// JQL search returns only the first page of results. Jira Cloud returns a nextPageToken, Data Center returns total and startAt.
+    /// Jira issue or native search response. JQL returns the first page by default;
+    /// use Cloud nextPageToken as Input.NextPageToken or Data Center startAt plus issue count as Input.StartAt for the next page.
+    /// GetAllPages combines pages up to MaxIssues. Cloud API v3 descriptions are ADF objects.
     /// </summary>
-    /// <example>{{"expand":"renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations","id":"151901"...</example>
+    /// <example>{"issues":[{"key":"TT-1"}]}</example>
     public JToken Data { get; private set; }
 
     /// <summary>
