@@ -2,10 +2,16 @@
 
 ## [2.0.0] - 2025-10-21
 ### Changed
-- Breaking: Task now targets .NET 8.
-- Breaking: Task parameters are now in the order Input, Connection, Options.
-- Breaking: Options.ThrowOnError was replaced by Options.ThrowErrorOnFailure (default true), and Options.ErrorMessageOnFailure was added for a custom error message.
-- Breaking: Result.ErrorMessage was replaced by Result.Error, which contains Message and AdditionalInfo. Error is null on success.
+- Task now targets .NET 8.
+- [Breaking Change] Task parameters are now in the order Input, Connection, Options.
+- [Breaking Change] Options.ThrowOnError was replaced by Options.ThrowErrorOnFailure (default true), and Options.ErrorMessageOnFailure was added for a custom error message.
+- [Breaking Change] Jira Cloud API v3 requires the comment in Atlassian Document Format (ADF). Plain text is not converted. Use API v2 for plain text.
+- Error messages now include the deployment type and API version, e.g. `Error adding comment (Cloud, API v3): ...`.
+
+### Added
+- Jira Cloud support: Connection.DeploymentType (Cloud/DataCenter, default Cloud), Connection.CloudApiVersion (V3/V2, Cloud only) and Connection.Email (Cloud only, Basic authentication with API token).
+- Input validation for deployment type, base URL, token, email, issue ID/key and comment.
+- Tests restructured: Jira Cloud integration tests (configured with `.env`) and Data Center tests using a WireMock server.
 
 ## [1.1.0] - 2025-03-19
 ### Changed
