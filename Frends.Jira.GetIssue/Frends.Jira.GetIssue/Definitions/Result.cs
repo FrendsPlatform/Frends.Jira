@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Linq;
 
 namespace Frends.Jira.GetIssue.Definitions;
 
@@ -7,6 +7,13 @@ namespace Frends.Jira.GetIssue.Definitions;
 /// </summary>
 public class Result
 {
+    internal Result(bool success, JToken data, Error error = null)
+    {
+        Success = success;
+        Data = data;
+        Error = error;
+    }
+
     /// <summary>
     /// Operation complete without errors.
     /// </summary>
@@ -14,21 +21,16 @@ public class Result
     public bool Success { get; private set; }
 
     /// <summary>
-    /// Request content as JToken.
+    /// Jira issue or native search response. JQL returns the first page by default;
+    /// use Cloud nextPageToken as Input.NextPageToken or Data Center startAt plus issue count as Input.StartAt for the next page.
+    /// GetAllPages combines pages up to MaxIssues. Cloud API v3 descriptions are ADF objects.
     /// </summary>
-    /// <example>{{"expand":"renderedFields,names,schema,operations,editmeta,changelog,versionedRepresentations","id":"151901"...</example>
+    /// <example>{"issues":[{"key":"TT-1"}]}</example>
     public JToken Data { get; private set; }
 
     /// <summary>
-    /// Error message.
+    /// Error details. Null when Success is true.
     /// </summary>
-    /// <example>An error occured...</example>
-    public string ErrorMessage { get; private set; }
-
-    internal Result(bool success, JToken data, string errorMessage)
-    {
-        Success = success;
-        Data = data;
-        ErrorMessage = errorMessage;
-    }
+    /// <example>null</example>
+    public Error Error { get; private set; }
 }
