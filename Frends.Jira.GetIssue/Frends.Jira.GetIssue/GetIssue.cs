@@ -11,6 +11,8 @@ using Frends.Jira.GetIssue.Helpers;
 using Newtonsoft.Json.Linq;
 using RestSharp;
 
+#nullable enable annotations
+
 namespace Frends.Jira.GetIssue;
 
 /// <summary>

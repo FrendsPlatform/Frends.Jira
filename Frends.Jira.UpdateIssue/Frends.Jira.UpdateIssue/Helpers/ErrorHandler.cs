@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.ExceptionServices;
 using Frends.Jira.UpdateIssue.Definitions;
 
@@ -47,14 +48,10 @@ internal static class ErrorHandler
             ? exception.Message
             : $"{customMessage}: {exception.Message}";
 
-        return new Result
+        return new Result(false, new Error
         {
-            Success = false,
-            Error = new Error
-            {
-                Message = errorMessage,
-                AdditionalInfo = exception,
-            },
-        };
+            Message = errorMessage,
+            AdditionalInfo = exception,
+        });
     }
 }
