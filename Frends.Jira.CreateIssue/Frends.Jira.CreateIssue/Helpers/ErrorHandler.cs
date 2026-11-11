@@ -49,9 +49,9 @@ internal static class ErrorHandler
             : $"{customMessage}: {exception.Message}";
 
         return new Result(false, null, new Error
-            {
-                Message = errorMessage,
-                AdditionalInfo = exception,
-            });
+        {
+            Message = errorMessage,
+            AdditionalInfo = exception,
+        });
     }
 }
