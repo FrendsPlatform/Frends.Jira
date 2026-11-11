@@ -155,7 +155,7 @@ internal class DataCenterMockTests : TestBase
         connection.DeploymentType = JiraDeploymentType.Cloud;
         connection.Email = string.Empty;
 
-        var ex = await Assert.ThrowsAsync<ArgumentException>(
+        var ex = await Assert.ThrowsAsync<System.ComponentModel.DataAnnotations.ValidationException>(
             () => Jira.CreateIssue(DefaultInput(), connection, DefaultOptions(), default));
         Assert.That(ex!.Message, Does.Contain("Email is required for Jira Cloud"));
     }

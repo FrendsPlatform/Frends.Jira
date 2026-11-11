@@ -30,7 +30,7 @@ public static class Jira
     {
         try
         {
-            Validate(input, connection);
+            ValidationHandler.Run(input, connection);
             var apiVersion = ResolveApiVersion(connection);
             var body = BuildBody(input, connection, apiVersion);
 
@@ -66,44 +66,6 @@ public static class Jira
         catch (Exception ex)
         {
             return ex.Handle(options);
-        }
-    }
-
-    private static void Validate(Input input, Connection connection)
-    {
-        if (!Enum.IsDefined(connection.DeploymentType))
-        {
-            throw new ArgumentOutOfRangeException(nameof(connection.DeploymentType), connection.DeploymentType, "Unsupported Jira deployment type.");
-        }
-
-        if (connection.DeploymentType == JiraDeploymentType.Cloud && !Enum.IsDefined(connection.CloudApiVersion))
-        {
-            throw new ArgumentOutOfRangeException(nameof(connection.CloudApiVersion), connection.CloudApiVersion, "Unsupported Jira Cloud API version.");
-        }
-
-        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
-        {
-            throw new ArgumentException("Jira base URL is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(connection.Token))
-        {
-            throw new ArgumentException("Token is required.");
-        }
-
-        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
-        {
-            throw new ArgumentException("Email is required for Jira Cloud.");
-        }
-
-        if (string.IsNullOrWhiteSpace(input.IdOrKey))
-        {
-            throw new ArgumentException("Issue ID or key is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(input.Comment))
-        {
-            throw new ArgumentException("Comment is required.");
         }
     }
 

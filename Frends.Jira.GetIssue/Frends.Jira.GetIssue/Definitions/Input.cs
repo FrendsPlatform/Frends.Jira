@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using Frends.Jira.GetIssue.Attributes;
 
 namespace Frends.Jira.GetIssue.Definitions;
 
@@ -20,6 +21,7 @@ public class Input
     /// </summary>
     /// <example>TT-1, 123</example>
     [UIHint(nameof(SearchType), "", SearchType.IdOrKey)]
+    [RequiredIf(nameof(SearchType), SearchType.IdOrKey, ErrorMessage = "Issue ID or key is required.")]
     public string IdOrKey { get; set; }
 
     /// <summary>
@@ -27,6 +29,7 @@ public class Input
     /// </summary>
     /// <example>project=TT</example>
     [UIHint(nameof(SearchType), "", SearchType.Jql)]
+    [RequiredIf(nameof(SearchType), SearchType.Jql, ErrorMessage = "JQL is required.")]
     public string Jql { get; set; }
 
     /// <summary>

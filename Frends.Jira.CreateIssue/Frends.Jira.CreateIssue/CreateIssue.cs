@@ -30,7 +30,7 @@ public static class Jira
     {
         try
         {
-            Validate(connection);
+            ValidationHandler.Run(connection);
 
             var apiVersion = ResolveApiVersion(connection);
 
@@ -81,18 +81,6 @@ public static class Jira
         {
             return ex.Handle(options);
         }
-    }
-
-    private static void Validate(Connection connection)
-    {
-        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
-            throw new ArgumentException("Jira base URL is required.");
-
-        if (string.IsNullOrWhiteSpace(connection.Token))
-            throw new ArgumentException("Token is required.");
-
-        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
-            throw new ArgumentException("Email is required for Jira Cloud.");
     }
 
     private static string ResolveApiVersion(Connection connection)

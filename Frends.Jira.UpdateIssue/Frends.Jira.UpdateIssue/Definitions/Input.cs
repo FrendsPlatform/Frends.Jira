@@ -12,6 +12,7 @@ public class Input
     /// Specify the issue ID or key to update.
     /// </summary>
     /// <example>TT-1, 123</example>
+    [Required(ErrorMessage = "Issue ID or key is required.")]
     public string IdOrKey { get; set; }
 
     /// <summary>

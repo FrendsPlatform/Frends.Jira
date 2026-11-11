@@ -31,7 +31,7 @@ public static class Jira
     {
         try
         {
-            Validate(connection);
+            ValidationHandler.Run(input, connection);
             var apiVersion = ResolveApiVersion(connection);
 
             using var client = new RestClient(connection.JiraBaseUrl);
@@ -40,15 +40,11 @@ public static class Jira
             switch (input.SearchType)
             {
                 case SearchType.IdOrKey:
-                    if (string.IsNullOrWhiteSpace(input.IdOrKey))
-                        throw new ArgumentException("Issue ID or key is required.");
                     var issueRequest = new RestRequest($"rest/api/{apiVersion}/issue/{{issueId}}", Method.Get)
                         .AddUrlSegment("issueId", input.IdOrKey);
                     var issueData = await ExecuteRequestAsync(client, issueRequest, connection, apiVersion, cancellationToken);
                     return new Result(true, issueData);
                 case SearchType.Jql:
-                    if (string.IsNullOrWhiteSpace(input.Jql))
-                        throw new ArgumentException("JQL is required.");
                     ValidatePagination(input, connection.DeploymentType);
                     var searchData = await SearchJqlAsync(client, input, connection, apiVersion, cancellationToken);
                     return new Result(true, searchData);
@@ -210,24 +206,6 @@ public static class Jira
             throw new ArgumentOutOfRangeException(nameof(input.MaxResults), "MaxResults must be greater than zero.");
         if (input.GetAllPages && input.MaxIssues < 1)
             throw new ArgumentOutOfRangeException(nameof(input.MaxIssues), "MaxIssues must be greater than zero.");
-    }
-
-    private static void Validate(Connection connection)
-    {
-        if (!Enum.IsDefined(connection.DeploymentType))
-            throw new ArgumentOutOfRangeException(nameof(connection.DeploymentType), connection.DeploymentType, "Unsupported Jira deployment type.");
-
-        if (connection.DeploymentType == JiraDeploymentType.Cloud && !Enum.IsDefined(connection.CloudApiVersion))
-            throw new ArgumentOutOfRangeException(nameof(connection.CloudApiVersion), connection.CloudApiVersion, "Unsupported Jira Cloud API version.");
-
-        if (string.IsNullOrWhiteSpace(connection.JiraBaseUrl))
-            throw new ArgumentException("Jira base URL is required.");
-
-        if (string.IsNullOrWhiteSpace(connection.Token))
-            throw new ArgumentException("Token is required.");
-
-        if (connection.DeploymentType == JiraDeploymentType.Cloud && string.IsNullOrWhiteSpace(connection.Email))
-            throw new ArgumentException("Email is required for Jira Cloud.");
     }
 
     private static string ResolveApiVersion(Connection connection)

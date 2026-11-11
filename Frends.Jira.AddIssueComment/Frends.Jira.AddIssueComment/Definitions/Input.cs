@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Frends.Jira.AddIssueComment.Definitions;
 
 /// <summary>
@@ -9,6 +11,7 @@ public class Input
     /// Issue ID or key.
     /// </summary>
     /// <example>TT-1, 123</example>
+    [Required(ErrorMessage = "Issue ID or key is required.")]
     public string IdOrKey { get; set; }
 
     /// <summary>
@@ -16,5 +19,6 @@ public class Input
     /// Use API v2 or Data Center for plain text.
     /// </summary>
     /// <example>Comment here.</example>
+    [Required(ErrorMessage = "Comment is required.")]
     public string Comment { get; set; }
 }

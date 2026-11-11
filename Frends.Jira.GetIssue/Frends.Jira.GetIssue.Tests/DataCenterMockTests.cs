@@ -159,7 +159,7 @@ internal class DataCenterMockTests : TestBase
         input = JqlInput();
         input.MaxResults = 0;
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await Jira.GetIssue(input, connection, options, default));
+        await Assert.ThrowsAsync<System.ComponentModel.DataAnnotations.ValidationException>(async () => await Jira.GetIssue(input, connection, options, default));
         Assert.That(server.LogEntries, Is.Empty);
     }
 
