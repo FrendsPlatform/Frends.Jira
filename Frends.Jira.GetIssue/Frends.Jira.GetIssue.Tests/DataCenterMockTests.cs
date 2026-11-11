@@ -154,12 +154,12 @@ internal class DataCenterMockTests : TestBase
     }
 
     [Test]
-    public void InvalidPaginationInputIsRejectedWithoutNetworkRequest()
+    public async Task InvalidPaginationInputIsRejectedWithoutNetworkRequest()
     {
         input = JqlInput();
         input.MaxResults = 0;
 
-        Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await Jira.GetIssue(input, connection, options, default));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () => await Jira.GetIssue(input, connection, options, default));
         Assert.That(server.LogEntries, Is.Empty);
     }
 

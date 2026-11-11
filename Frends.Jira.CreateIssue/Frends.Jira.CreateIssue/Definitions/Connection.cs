@@ -15,7 +15,8 @@ public class Connection
     public string JiraBaseUrl { get; set; }
 
     /// <summary>
-    /// Jira deployment type.     /// Cloud uses Basic authentication (email and API token).
+    /// Jira deployment type.
+    /// Cloud uses Basic authentication (email and API token).
     /// Data Center uses REST API v2 and Bearer authentication (PAT).
     /// </summary>
     /// <example>JiraDeploymentType.DataCenter</example>

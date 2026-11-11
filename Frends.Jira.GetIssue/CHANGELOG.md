@@ -15,7 +15,7 @@
 ### Added
 - Support for Jira Cloud and Jira Data Center. Choose the deployment with `DeploymentType` in Connection.
 - `CloudApiVersion` selection for Jira Cloud (v3 or v2). Data Center always uses v2.
-- JQL search on Jira Cloud uses the new search endpoint and returns all issue fields. Data Center uses the existing search endpoint.
+- [Breaking Change] JQL search on Jira Cloud uses the new search endpoint and returns all issue fields. Data Center uses the existing search endpoint.
 - JQL search can fetch and combine pages using `GetAllPages`, with configurable `MaxResults` and a `MaxIssues` safety limit.
 - JQL search supports manual paging with Cloud `NextPageToken` and Data Center `StartAt`.
 ### Fixed

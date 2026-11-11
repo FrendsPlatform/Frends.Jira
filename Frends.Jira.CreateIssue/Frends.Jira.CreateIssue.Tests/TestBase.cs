@@ -26,7 +26,7 @@ internal abstract class TestBase
     protected static Input CloudInput(string description)
     {
         var input = DefaultInput();
-        input.ProjectKey = GetEnvVar("TestJiraCloudProject") ?? "TT";
+        input.ProjectKey = GetEnvVar("TestJiraCloudProject");
         input.Summary = $"CreateIssue Cloud {DateTime.UtcNow:O}";
         input.Description = description;
         return input;
