@@ -10,7 +10,7 @@
 - [Breaking Change]: Jira Cloud now requires the `Email` setting together with an API token.
 - [Breaking Change]: Error messages now include the Jira deployment type and API version, for example `Error retrieving issue (DataCenter, API v2): NotFound`.
 - [Breaking Change]: The `Jql` value is now URL-encoded by the Task. Do not encode it yourself.
-- The Task now uses a fixed API version instead of `latest`.
+- The Task no longer uses the `latest` API version. Data Center always uses v2. For Jira Cloud, select v3 (default) or v2 with `CloudApiVersion` in Connection.
 - Empty issue ID/key, empty JQL, missing URL, token or email now give a clear error before the request is sent.
 ### Added
 - Support for Jira Cloud and Jira Data Center. Choose the deployment with `DeploymentType` in Connection.

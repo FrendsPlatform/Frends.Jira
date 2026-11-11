@@ -167,6 +167,7 @@ public static class Jira
         CancellationToken cancellationToken)
     {
         var response = await client.ExecuteAsync(request, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!response.IsSuccessful)
         {
             throw new Exception(
